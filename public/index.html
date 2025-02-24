@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Torus Lottery Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1, h2 { color: #333; }
+    button { margin: 5px 0; padding: 8px 12px; }
+    input { padding: 6px; }
+    .section { margin-bottom: 30px; }
+  </style>
+</head>
+<body>
+  <h1>Torus Lottery Dashboard</h1>
+  
+  <div class="section">
+    <h2>Lottery Entrants</h2>
+    <button id="refresh">Refresh Entrants</button>
+    <div id="entrants"></div>
+  </div>
+  
+  <div class="section">
+    <h2>Get Ticket Count</h2>
+    <input type="text" id="address" placeholder="Enter wallet address">
+    <button id="getTickets">Get Tickets</button>
+    <div id="ticketCount"></div>
+  </div>
+  
+  <div class="section">
+    <h2>Draw Winner</h2>
+    <button id="drawWinner">Draw Winner</button>
+    <div id="winnerResult"></div>
+  </div>
+  
+  <script>
+    // Refresh and display current entrants.
+    document.getElementById('refresh').addEventListener('click', async () => {
+      const res = await fetch('/api/entrants');
+      const data = await res.json();
+      let entrantsDiv = document.getElementById('entrants');
+      entrantsDiv.innerHTML = '';
+      for (let address in data.entrants) {
+        entrantsDiv.innerHTML += `<p>${address}: ${data.entrants[address]} ticket(s)</p>`;
+      }
+      entrantsDiv.innerHTML += `<p>Total Tickets: ${data.totalTickets}</p>`;
+      entrantsDiv.innerHTML += `<p>Jackpot: ${data.jackpot} TORUS</p>`;
+    });
+
+    // Query the ticket count for a specific wallet.
+    document.getElementById('getTickets').addEventListener('click', async () => {
+      const address = document.getElementById('address').value.trim();
+      if(!address) return;
+      const res = await fetch(`/api/tickets/${address}`);
+      const data = await res.json();
+      document.getElementById('ticketCount').innerText = `Wallet ${data.address} has ${data.tickets} ticket(s).`;
+    });
+
+    // Trigger a lottery draw.
+    document.getElementById('drawWinner').addEventListener('click', async () => {
+      const res = await fetch('/api/draw', { method: 'POST' });
+      const data = await res.json();
+      if(data.winner) {
+        document.getElementById('winnerResult').innerText =
+          `Winner: ${data.winner}\nJackpot: ${data.jackpot} TORUS\nTotal Tickets: ${data.totalTickets}`;
+      } else {
+        document.getElementById('winnerResult').innerText = data.message || 'No winner drawn.';
+      }
+    });
+  </script>
+</body>
+</html>
