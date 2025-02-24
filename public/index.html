@@ -2,71 +2,348 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Torus Lottery Dashboard</title>
+  <title>Torus Community Lottery</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1, h2 { color: #333; }
-    button { margin: 5px 0; padding: 8px 12px; }
-    input { padding: 6px; }
-    .section { margin-bottom: 30px; }
+    /* Global Dark Theme */
+    body {
+      margin: 0;
+      background: #141414; /* Deep dark background */
+      color: #e0e0e0;      /* Light text color */
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+
+    /* Container: centered content */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 30px;
+      text-align: center;
+    }
+
+    /* Neon glow helper class */
+    .neon-glow {
+      text-shadow:
+        0 0 8px rgba(122,80,254,0.9),
+        0 0 16px rgba(122,80,254,0.7),
+        0 0 25px rgba(122,80,254,0.6),
+        0 0 40px rgba(122,80,254,0.5);
+      color: #c7b2ff;
+    }
+
+    /* Header styling */
+    header {
+      margin-bottom: 20px;
+    }
+    header h1 {
+      font-size: 2.5em;
+      margin-bottom: 0.2em;
+      color: #f8f8f8;
+    }
+    header p {
+      font-size: 1.1em;
+      color: #ccc;
+      margin-top: 0.5em;
+    }
+    header a {
+      color: #7a50fe;
+      text-decoration: none;
+    }
+    header a:hover {
+      text-decoration: underline;
+    }
+
+    /* JACKPOT SECTION */
+    .jackpot-section {
+      background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 20px rgba(122,80,254,0.3);
+    }
+    .jackpot-section h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.6em;
+      color: #7a50fe;
+    }
+    .jackpot-value {
+      font-size: 2.5em;
+      font-weight: bold;
+      margin: 0;
+      color: #f92672; /* Neon pink accent */
+      text-shadow:
+        0 0 10px rgba(249,38,114,0.8),
+        0 0 20px rgba(249,38,114,0.6);
+    }
+
+    /* Card-like sections */
+    .card {
+      background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 0 20px rgba(122,80,254,0.2);
+      text-align: center;
+    }
+    .card h2 {
+      margin-top: 0;
+      color: #7a50fe;
+      text-shadow:
+        0 0 6px rgba(122,80,254,0.8),
+        0 0 12px rgba(122,80,254,0.6);
+    }
+    .card p {
+      margin: 0.5em 0;
+    }
+
+    /* Buttons (dynamic neon style) */
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      font-size: 1rem;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    /* Refresh button: Neon Blue */
+    #refreshBtn {
+      background-color: #29a6ff;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(41,166,255,0.6);
+    }
+    #refreshBtn:hover {
+      box-shadow: 0 0 15px rgba(41,166,255,0.8);
+    }
+
+    /* Check Tickets button: Neon Green */
+    #checkTicketsBtn {
+      background-color: #00c853;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(0,200,83,0.6);
+      margin-left: 10px;
+    }
+    #checkTicketsBtn:hover {
+      box-shadow: 0 0 15px rgba(0,200,83,0.8);
+    }
+
+    /* Draw Winner button: Neon Red */
+    #drawWinnerBtn {
+      background-color: #ff4c4c;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(255,76,76,0.6);
+    }
+    #drawWinnerBtn:hover {
+      box-shadow: 0 0 15px rgba(255,76,76,0.8);
+    }
+
+    /* Layout for headings and buttons on the same line */
+    .heading-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap; /* allow wrapping on smaller screens */
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+    .heading-row h2 {
+      margin: 0;
+    }
+
+    /* Entrants table */
+    table {
+      margin: 0 auto; /* center the table */
+      border-collapse: collapse;
+      margin-top: 15px;
+      width: 80%; /* narrower table width for a centered look */
+      text-align: left; /* keep columns left-aligned */
+    }
+    table, th, td {
+      border: 1px solid #333;
+    }
+    th, td {
+      padding: 12px;
+    }
+    th {
+      background: #2a2a2a;
+      color: #fff;
+    }
+    td {
+      background: #1f1f1f;
+    }
+    tfoot td {
+      font-weight: bold;
+    }
+
+    /* Check tickets input */
+    .check-tickets-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .check-tickets-container input[type="text"] {
+      padding: 10px;
+      width: 300px;
+      max-width: 80%;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #1f1f1f;
+      color: #ccc;
+      text-align: center;
+    }
+
+    /* Result text */
+    .result {
+      margin-top: 15px;
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #fff;
+      white-space: pre-wrap; /* preserve line breaks in textContent */
+    }
   </style>
 </head>
 <body>
-  <h1>Torus Lottery Dashboard</h1>
-  
-  <div class="section">
-    <h2>Lottery Entrants</h2>
-    <button id="refresh">Refresh Entrants</button>
-    <div id="entrants"></div>
-  </div>
-  
-  <div class="section">
-    <h2>Get Ticket Count</h2>
-    <input type="text" id="address" placeholder="Enter wallet address">
-    <button id="getTickets">Get Tickets</button>
-    <div id="ticketCount"></div>
-  </div>
-  
-  <div class="section">
-    <h2>Draw Winner</h2>
-    <button id="drawWinner">Draw Winner</button>
-    <div id="winnerResult"></div>
+  <div class="container">
+    <header>
+      <h1 class="neon-glow">Torus Community Lottery</h1>
+      <p><em>Let the devs dev. Let the degens degen.</em></p>
+    </header>
+    
+    <!-- JACKPOT SECTION -->
+    <div class="jackpot-section">
+      <h2>Current Jackpot</h2>
+      <p id="jackpotValue" class="jackpot-value">Loading...</p>
+    </div>
+    
+    <!-- Instructions -->
+    <div class="card">
+      <h2>How to Enter</h2>
+      <p>
+        Send <strong>1 TORUS</strong> to the address below using the
+        <a href="https://wallet.torus.network/" target="_blank">Torus Wallet</a>
+      </p>
+      <p style="font-weight: bold; font-size: 1.2em; color:#f92672;">
+        5HYirYDhaio3stpFYPPDxeiPepm8SVPWDDyjGXW6GrFy5fNj
+      </p>
+      <p>Every <strong>1 TORUS</strong> = <strong>10 tickets</strong>. As soon as your transaction is processed on-chain, your tickets will appear below!</p>
+    </div>
+    
+    <!-- Entrants section -->
+    <div class="card">
+      <div class="heading-row">
+        <h2>Lottery Entrants</h2>
+        <button id="refreshBtn">Refresh Entrants</button>
+      </div>
+      <table id="entrantsTable">
+        <thead>
+          <tr>
+            <th>Wallet Address</th>
+            <th>Tickets</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Entrant rows will be inserted here dynamically -->
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total Tickets</td>
+            <td id="totalTickets"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    
+    <!-- Check tickets section -->
+    <div class="card">
+      <h2>Check Your Tickets</h2>
+      <div class="check-tickets-container">
+        <input type="text" id="walletInput" placeholder="Enter your wallet address">
+        <button id="checkTicketsBtn">Check Tickets</button>
+      </div>
+      <div id="ticketResult" class="result"></div>
+    </div>
+    
+    <!-- Draw winner section -->
+    <div class="card">
+      <h2>Draw Winner</h2>
+      <button id="drawWinnerBtn">Draw Winner</button>
+      <div id="winnerResult" class="result"></div>
+    </div>
   </div>
   
   <script>
-    // Refresh and display current entrants.
-    document.getElementById('refresh').addEventListener('click', async () => {
-      const res = await fetch('/api/entrants');
-      const data = await res.json();
-      let entrantsDiv = document.getElementById('entrants');
-      entrantsDiv.innerHTML = '';
-      for (let address in data.entrants) {
-        entrantsDiv.innerHTML += `<p>${address}: ${data.entrants[address]} ticket(s)</p>`;
-      }
-      entrantsDiv.innerHTML += `<p>Total Tickets: ${data.totalTickets}</p>`;
-      entrantsDiv.innerHTML += `<p>Jackpot: ${data.jackpot} TORUS</p>`;
-    });
+    // Fetch and display the current entrants from the back end.
+    async function refreshEntrants() {
+      try {
+        const res = await fetch('/api/entrants');
+        const data = await res.json();
 
-    // Query the ticket count for a specific wallet.
-    document.getElementById('getTickets').addEventListener('click', async () => {
-      const address = document.getElementById('address').value.trim();
-      if(!address) return;
-      const res = await fetch(`/api/tickets/${address}`);
-      const data = await res.json();
-      document.getElementById('ticketCount').innerText = `Wallet ${data.address} has ${data.tickets} ticket(s).`;
-    });
+        // Update jackpot at the top
+        const jackpotElem = document.getElementById('jackpotValue');
+        jackpotElem.textContent = data.jackpot + ' TORUS';
 
-    // Trigger a lottery draw.
-    document.getElementById('drawWinner').addEventListener('click', async () => {
-      const res = await fetch('/api/draw', { method: 'POST' });
-      const data = await res.json();
-      if(data.winner) {
-        document.getElementById('winnerResult').innerText =
-          `Winner: ${data.winner}\nJackpot: ${data.jackpot} TORUS\nTotal Tickets: ${data.totalTickets}`;
-      } else {
-        document.getElementById('winnerResult').innerText = data.message || 'No winner drawn.';
+        // Update entrants table
+        const tableBody = document.querySelector('#entrantsTable tbody');
+        tableBody.innerHTML = '';
+        for (let address in data.entrants) {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${address}</td><td>${data.entrants[address]}</td>`;
+          tableBody.appendChild(row);
+        }
+        document.getElementById('totalTickets').textContent = data.totalTickets;
+      } catch (error) {
+        console.error('Error fetching entrants:', error);
       }
-    });
+    }
+    
+    // Check ticket count for a given wallet address.
+    async function checkTickets() {
+      const wallet = document.getElementById('walletInput').value.trim();
+      const resultDiv = document.getElementById('ticketResult');
+      if (!wallet) {
+        resultDiv.textContent = 'Please enter a wallet address.';
+        return;
+      }
+      try {
+        const res = await fetch(`/api/tickets/${wallet}`);
+        const data = await res.json();
+        resultDiv.textContent = `Wallet ${data.address} has ${data.tickets} ticket(s).`;
+      } catch (error) {
+        console.error('Error checking tickets:', error);
+        resultDiv.textContent = 'Error retrieving ticket information.';
+      }
+    }
+    
+    // Trigger a lottery draw via the back end.
+    async function drawWinner() {
+      try {
+        const res = await fetch('/api/draw', { method: 'POST' });
+        const data = await res.json();
+        const winnerDiv = document.getElementById('winnerResult');
+        if (data.winner) {
+          winnerDiv.textContent = `Winner: ${data.winner}\nJackpot: ${data.jackpot} TORUS\nTotal Tickets: ${data.totalTickets}`;
+        } else {
+          winnerDiv.textContent = data.message || 'No winner drawn.';
+        }
+        // Refresh the jackpot and entrants after a draw
+        refreshEntrants();
+      } catch (error) {
+        console.error('Error drawing winner:', error);
+      }
+    }
+    
+    // Attach event listeners
+    document.getElementById('refreshBtn').addEventListener('click', refreshEntrants);
+    document.getElementById('checkTicketsBtn').addEventListener('click', checkTickets);
+    document.getElementById('drawWinnerBtn').addEventListener('click', drawWinner);
+    
+    // Initial load
+    refreshEntrants();
   </script>
 </body>
 </html>
