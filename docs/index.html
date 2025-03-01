@@ -295,8 +295,8 @@
     document.getElementById('refreshBtn').addEventListener('click', refreshEntrants);
   });
   // Set countdown duration (e.g. 7 days in milliseconds; for testing, you can use a shorter duration)
-  // localStorage.clear()
-  const countdownDuration = 30000;
+  localStorage.clear()
+  const countdownDuration = 60000;
   
   // Retrieve any existing countdown end time from localStorage
   let countdownEnd = localStorage.getItem('countdownEnd');

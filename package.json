@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@polkadot/api": "^15.6.1",
+    "aws-sdk": "^2.1692.0",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2"
   }
 }

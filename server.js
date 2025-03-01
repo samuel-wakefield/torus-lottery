@@ -1,6 +1,66 @@
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const express = require('express');
 const path = require('path');
+const fs = require('fs'); // no longer used for logging, but can be kept for local logs if desired
+
+require('dotenv').config();
+
+const AWS = require('aws-sdk');
+// Configure AWS with your credentials and region (set via environment variables on Render)
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID, 
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION, // e.g., 'us-west-2'
+});
+
+const LOG_BUCKET = process.env.LOG_BUCKET; // your S3 bucket name
+const LOG_FILE_KEY = 'transaction-log.jsonl'; // file name in S3
+
+console.log("LOG_BUCKET:", process.env.LOG_BUCKET);
+
+// Helper function to get the current log from S3
+async function getCurrentLog() {
+  try {
+    const data = await s3.getObject({ Bucket: LOG_BUCKET, Key: LOG_FILE_KEY }).promise();
+    return data.Body.toString();
+  } catch (err) {
+    if (err.code === 'NoSuchKey') {
+      // File doesn't exist yet; return empty string
+      return '';
+    }
+    throw err;
+  }
+}
+
+// Helper function to save updated log to S3
+async function saveLogToS3(logContent) {
+  const params = {
+    Bucket: LOG_BUCKET,
+    Key: LOG_FILE_KEY,
+    Body: logContent,
+    ContentType: 'text/plain'
+  };
+  return s3.putObject(params).promise();
+}
+
+// Function to log a transaction to S3
+async function logTransaction(sender, amount) {
+  const timestamp = new Date().toISOString();
+  const entry = { time: timestamp, sender, amount };
+  const newEntry = JSON.stringify(entry) + "\n";
+  
+  try {
+    // Get the current log from S3 (if it exists)
+    const currentLog = await getCurrentLog();
+    // Append the new entry
+    const updatedLog = currentLog + newEntry;
+    // Save the updated log back to S3
+    await saveLogToS3(updatedLog);
+    console.log("Transaction logged to S3:", entry);
+  } catch (err) {
+    console.error("Error writing transaction log to S3:", err);
+  }
+}
 
 // Initialize Express app
 const app = express();
@@ -40,7 +100,7 @@ async function startBlockchainListener() {
 }
 
 // Process an incoming transfer: remove commas, convert from minimal units to human-readable tokens,
-// and calculate tickets (1 ticket per 0.1 TORUS).
+// calculate tickets (1 ticket per 0.1 TORUS), update global state, and log the transaction.
 function onIncomingTransfer(sender, amount) {
   console.log(`🚀 Triggered function: Received ${amount} from ${sender}`);
   const rawAmount = parseFloat(amount.replace(/,/g, ''));
@@ -60,6 +120,9 @@ function onIncomingTransfer(sender, amount) {
     lotteryTickets[sender] = ticketsAwarded;
   }
   console.log(`🎟 Added ${ticketsAwarded} lottery tickets for ${sender}. Total tickets for sender: ${lotteryTickets[sender]}`);
+
+  // Log the transaction to S3 for backup
+  logTransaction(sender, numericAmount);
 }
 
 // Lottery functions for use by the API:
