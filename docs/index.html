@@ -79,7 +79,6 @@
       border-radius: 8px;
       padding: 20px;
       margin: 20px auto 30px;
-      width: 80%;
       box-shadow: 0 0 20px rgba(122,80,254,0.3);
       position: relative;
     }
@@ -92,7 +91,7 @@
         0 0 12px rgba(122,80,254,0.6);
     }
     .countdown-timer {
-      font-size: 2em;
+      font-size: 3em;
       color: #00d1b2;
       font-weight: bold;
       animation: pulseTimer 1s infinite alternate;
@@ -237,7 +236,7 @@
     
     <!-- Countdown Timer Section -->
     <div class="countdown-section">
-      <div class="countdown-title">Next Lottery Draw In</div>
+      <div class="countdown-title" style="font-weight: bold;">Next Lottery Draw In</div>
       <div id="countdownTimer" class="countdown-timer">Loading...</div>
     </div>
     
@@ -253,6 +252,17 @@
       </p>
       <p>Every <strong>1 TORUS</strong> = <strong>10 tickets</strong>. As soon as your transaction is processed on-chain, your tickets will appear below!</p>
     </div>
+
+      <!-- Check tickets section -->
+      <div class="card">
+        <h2>Check Your Tickets</h2>
+        <div class="check-tickets-container">
+          <input type="text" id="walletInput" placeholder="Enter your wallet address">
+          <button id="checkTicketsBtn">Check Tickets</button>
+        </div>
+        <div id="ticketResult" class="result"></div>
+      </div>
+    
     
     <!-- Entrants section -->
     <div class="card">
@@ -278,21 +288,14 @@
         </tfoot>
       </table>
     </div>
-    
-    <!-- Check tickets section -->
-    <div class="card">
-      <h2>Check Your Tickets</h2>
-      <div class="check-tickets-container">
-        <input type="text" id="walletInput" placeholder="Enter your wallet address">
-        <button id="checkTicketsBtn">Check Tickets</button>
-      </div>
-      <div id="ticketResult" class="result"></div>
-    </div>
   </div>
   
   <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('refreshBtn').addEventListener('click', refreshEntrants);
+  });
   // Set countdown duration (e.g. 7 days in milliseconds; for testing, you can use a shorter duration)
-  localStorage.clear()
+  // localStorage.clear()
   const countdownDuration = 30000;
   
   // Retrieve any existing countdown end time from localStorage
@@ -304,8 +307,7 @@
     countdownEnd = parseInt(countdownEnd, 10);
   }
 
-  // Update countdown timer every second
-  const countdownInterval = setInterval(() => {
+    const countdownInterval = setInterval(() => {
     const now = new Date().getTime();
     const distance = countdownEnd - now;
     
@@ -318,17 +320,19 @@
     // Display the remaining time in the countdownTimer element
     document.getElementById("countdownTimer").textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     
-    // When the countdown finishes, clear the interval and draw the winner
+    // When the countdown finishes, update the title, clear the interval, and draw the winner
     if (distance < 0) {
       clearInterval(countdownInterval);
+      // Update the countdown title to display the winner label
+      document.querySelector('.countdown-title').textContent = "Winner is:";
       document.getElementById("countdownTimer").textContent = "DRAWING WINNER...";
-      // Draw the winner and display the result in the same element
       drawWinner().then(winnerInfo => {
         document.getElementById("countdownTimer").textContent = winnerInfo;
+        document.getElementById("countdownTimer").style.fontSize = "2em";
       });
     }
   }, 1000);
-  
+    
   // Function to draw the winner and return a string with winner details
   async function drawWinner() {
     try {
@@ -352,16 +356,18 @@
     
     // Fetch and display the current entrants from the back end.
     async function refreshEntrants() {
+      console.log('Refresh button clicked');
       try {
-        const res = await fetch('/api/entrants');
+        const res = await fetch(`/api/entrants?ts=${new Date().getTime()}`);
         const data = await res.json();
-  
-        // Update jackpot at the top
+        console.log('Data from API:', data);
+        
         const jackpotElem = document.getElementById('jackpotValue');
+        console.log('jackpotElem:', jackpotElem);
         jackpotElem.textContent = data.jackpot + ' TORUS';
-  
-        // Update entrants table
+        
         const tableBody = document.querySelector('#entrantsTable tbody');
+        console.log('tableBody:', tableBody);
         tableBody.innerHTML = '';
         for (let address in data.entrants) {
           const row = document.createElement('tr');
@@ -373,7 +379,6 @@
         console.error('Error fetching entrants:', error);
       }
     }
-    
     // Check ticket count for a given wallet address.
     async function checkTickets() {
       const wallet = document.getElementById('walletInput').value.trim();
