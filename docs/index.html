@@ -11,7 +11,6 @@
       color: #e0e0e0;      /* Light text color */
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     }
-
     /* Container: centered content */
     .container {
       max-width: 900px;
@@ -19,7 +18,6 @@
       padding: 30px;
       text-align: center;
     }
-
     /* Neon glow helper class */
     .neon-glow {
       text-shadow:
@@ -29,7 +27,6 @@
         0 0 40px rgba(122,80,254,0.5);
       color: #c7b2ff;
     }
-
     /* Header styling */
     header {
       margin-bottom: 20px;
@@ -51,7 +48,6 @@
     header a:hover {
       text-decoration: underline;
     }
-
     /* JACKPOT SECTION */
     .jackpot-section {
       background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
@@ -77,7 +73,40 @@
         0 0 10px rgba(249,38,114,0.8),
         0 0 20px rgba(249,38,114,0.6);
     }
-
+    /* Countdown Timer Section */
+    .countdown-section {
+      background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px auto 30px;
+      width: 80%;
+      box-shadow: 0 0 20px rgba(122,80,254,0.3);
+      position: relative;
+    }
+    .countdown-title {
+      font-size: 1.8em;
+      color: #7a50fe;
+      margin-bottom: 10px;
+      text-shadow:
+        0 0 6px rgba(122,80,254,0.8),
+        0 0 12px rgba(122,80,254,0.6);
+    }
+    .countdown-timer {
+      font-size: 2em;
+      color: #00d1b2;
+      font-weight: bold;
+      animation: pulseTimer 1s infinite alternate;
+    }
+    @keyframes pulseTimer {
+      from {
+        transform: scale(1);
+        text-shadow: 0 0 10px rgba(0,209,178,0.8);
+      }
+      to {
+        transform: scale(1.05);
+        text-shadow: 0 0 20px rgba(0,209,178,1);
+      }
+    }
     /* Card-like sections */
     .card {
       background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
@@ -97,7 +126,6 @@
     .card p {
       margin: 0.5em 0;
     }
-
     /* Buttons (dynamic neon style) */
     button {
       padding: 10px 20px;
@@ -110,7 +138,6 @@
     button:hover {
       transform: scale(1.05);
     }
-
     /* Refresh button: Neon Blue */
     #refreshBtn {
       background-color: #29a6ff;
@@ -120,7 +147,6 @@
     #refreshBtn:hover {
       box-shadow: 0 0 15px rgba(41,166,255,0.8);
     }
-
     /* Check Tickets button: Neon Green */
     #checkTicketsBtn {
       background-color: #00c853;
@@ -131,37 +157,25 @@
     #checkTicketsBtn:hover {
       box-shadow: 0 0 15px rgba(0,200,83,0.8);
     }
-
-    /* Draw Winner button: Neon Red */
-    #drawWinnerBtn {
-      background-color: #ff4c4c;
-      color: #fff;
-      box-shadow: 0 0 8px rgba(255,76,76,0.6);
-    }
-    #drawWinnerBtn:hover {
-      box-shadow: 0 0 15px rgba(255,76,76,0.8);
-    }
-
     /* Layout for headings and buttons on the same line */
     .heading-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-wrap: wrap; /* allow wrapping on smaller screens */
+      flex-wrap: wrap;
       gap: 15px;
       margin-bottom: 10px;
     }
     .heading-row h2 {
       margin: 0;
     }
-
     /* Entrants table */
     table {
-      margin: 0 auto; /* center the table */
+      margin: 0 auto;
       border-collapse: collapse;
       margin-top: 15px;
-      width: 80%; /* narrower table width for a centered look */
-      text-align: left; /* keep columns left-aligned */
+      width: 80%;
+      text-align: left;
     }
     table, th, td {
       border: 1px solid #333;
@@ -179,7 +193,6 @@
     tfoot td {
       font-weight: bold;
     }
-
     /* Check tickets input */
     .check-tickets-container {
       display: flex;
@@ -199,14 +212,13 @@
       color: #ccc;
       text-align: center;
     }
-
     /* Result text */
     .result {
       margin-top: 15px;
       font-size: 1.1em;
       font-weight: bold;
       color: #fff;
-      white-space: pre-wrap; /* preserve line breaks in textContent */
+      white-space: pre-wrap;
     }
   </style>
 </head>
@@ -223,10 +235,16 @@
       <p id="jackpotValue" class="jackpot-value">Loading...</p>
     </div>
     
+    <!-- Countdown Timer Section -->
+    <div class="countdown-section">
+      <div class="countdown-title">Next Lottery Draw In</div>
+      <div id="countdownTimer" class="countdown-timer">Loading...</div>
+    </div>
+    
     <!-- Instructions -->
     <div class="card">
       <h2>How to Enter</h2>
-      <p> 
+      <p>
         Send your Torus to the address below using the
         <a href="https://wallet.torus.network/" style="color: #f92672;" target="_blank">Torus Wallet</a>
       </p>
@@ -270,26 +288,78 @@
       </div>
       <div id="ticketResult" class="result"></div>
     </div>
-    
-    <!-- Draw winner section -->
-    <div class="card">
-      <h2>Draw Winner</h2>
-      <button id="drawWinnerBtn">Draw Winner</button>
-      <div id="winnerResult" class="result"></div>
-    </div>
   </div>
   
   <script>
+  // Set countdown duration (e.g. 7 days in milliseconds; for testing, you can use a shorter duration)
+  localStorage.clear()
+  const countdownDuration = 30000;
+  
+  // Retrieve any existing countdown end time from localStorage
+  let countdownEnd = localStorage.getItem('countdownEnd');
+  if (!countdownEnd) {
+    countdownEnd = new Date().getTime() + countdownDuration;
+    localStorage.setItem('countdownEnd', countdownEnd);
+  } else {
+    countdownEnd = parseInt(countdownEnd, 10);
+  }
+
+  // Update countdown timer every second
+  const countdownInterval = setInterval(() => {
+    const now = new Date().getTime();
+    const distance = countdownEnd - now;
+    
+    // Time calculations for days, hours, minutes and seconds
+    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    
+    // Display the remaining time in the countdownTimer element
+    document.getElementById("countdownTimer").textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    
+    // When the countdown finishes, clear the interval and draw the winner
+    if (distance < 0) {
+      clearInterval(countdownInterval);
+      document.getElementById("countdownTimer").textContent = "DRAWING WINNER...";
+      // Draw the winner and display the result in the same element
+      drawWinner().then(winnerInfo => {
+        document.getElementById("countdownTimer").textContent = winnerInfo;
+      });
+    }
+  }, 1000);
+  
+  // Function to draw the winner and return a string with winner details
+  async function drawWinner() {
+    try {
+      const res = await fetch('/api/draw', { method: 'POST' });
+      const data = await res.json();
+      // Construct winner details text
+      let winnerText;
+      if (data.winner) {
+        winnerText = `${data.winner}\nJackpot: ${data.jackpot} TORUS`;
+      } else {
+        winnerText = data.message || 'No winner drawn.';
+      }
+      // Optionally refresh the entrants and jackpot elsewhere on the page
+      refreshEntrants();
+      return winnerText;
+    } catch (error) {
+      console.error('Error drawing winner:', error);
+      return 'Error drawing winner.';
+    }
+  }
+    
     // Fetch and display the current entrants from the back end.
     async function refreshEntrants() {
       try {
         const res = await fetch('/api/entrants');
         const data = await res.json();
-
+  
         // Update jackpot at the top
         const jackpotElem = document.getElementById('jackpotValue');
         jackpotElem.textContent = data.jackpot + ' TORUS';
-
+  
         // Update entrants table
         const tableBody = document.querySelector('#entrantsTable tbody');
         tableBody.innerHTML = '';
@@ -322,30 +392,10 @@
       }
     }
     
-    // Trigger a lottery draw via the back end.
-    async function drawWinner() {
-      try {
-        const res = await fetch('/api/draw', { method: 'POST' });
-        const data = await res.json();
-        const winnerDiv = document.getElementById('winnerResult');
-        if (data.winner) {
-          winnerDiv.textContent = `Winner: ${data.winner}\nJackpot: ${data.jackpot} TORUS\nTotal Tickets: ${data.totalTickets}`;
-        } else {
-          winnerDiv.textContent = data.message || 'No winner drawn.';
-        }
-        // Refresh the jackpot and entrants after a draw
-        refreshEntrants();
-      } catch (error) {
-        console.error('Error drawing winner:', error);
-      }
-    }
-    
-    // Attach event listeners
-    document.getElementById('refreshBtn').addEventListener('click', refreshEntrants);
+    // Attach event listener for checking tickets
     document.getElementById('checkTicketsBtn').addEventListener('click', checkTickets);
-    document.getElementById('drawWinnerBtn').addEventListener('click', drawWinner);
     
-    // Initial load
+    // Initial load of entrants
     refreshEntrants();
   </script>
 </body>
