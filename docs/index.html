@@ -89,6 +89,7 @@
       text-shadow:
         0 0 6px rgba(122,80,254,0.8),
         0 0 12px rgba(122,80,254,0.6);
+      font-weight: bold;
     }
     .countdown-timer {
       font-size: 3em;
@@ -136,6 +137,10 @@
     }
     button:hover {
       transform: scale(1.05);
+    }
+    button:active {
+      transform: scale(0.95);
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
     }
     /* Refresh button: Neon Blue */
     #refreshBtn {
@@ -253,16 +258,15 @@
       <p>Every <strong>1 TORUS</strong> = <strong>10 tickets</strong>. As soon as your transaction is processed on-chain, your tickets will appear below!</p>
     </div>
 
-      <!-- Check tickets section -->
-      <div class="card">
-        <h2>Check Your Tickets</h2>
-        <div class="check-tickets-container">
-          <input type="text" id="walletInput" placeholder="Enter your wallet address">
-          <button id="checkTicketsBtn">Check Tickets</button>
-        </div>
-        <div id="ticketResult" class="result"></div>
+    <!-- Check tickets section -->
+    <div class="card">
+      <h2>Check Your Tickets</h2>
+      <div class="check-tickets-container">
+        <input type="text" id="walletInput" placeholder="Enter your wallet address">
+        <button id="checkTicketsBtn">Check Tickets</button>
       </div>
-    
+      <div id="ticketResult" class="result"></div>
+    </div>
     
     <!-- Entrants section -->
     <div class="card">
@@ -291,68 +295,68 @@
   </div>
   
   <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('refreshBtn').addEventListener('click', refreshEntrants);
-  });
-  // Set countdown duration (e.g. 7 days in milliseconds; for testing, you can use a shorter duration)
-  localStorage.clear()
-  const countdownDuration = 60000;
-  
-  // Retrieve any existing countdown end time from localStorage
-  let countdownEnd = localStorage.getItem('countdownEnd');
-  if (!countdownEnd) {
-    countdownEnd = new Date().getTime() + countdownDuration;
-    localStorage.setItem('countdownEnd', countdownEnd);
-  } else {
-    countdownEnd = parseInt(countdownEnd, 10);
-  }
-
+    // Attach event listeners when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('refreshBtn').addEventListener('click', refreshEntrants);
+      document.getElementById('checkTicketsBtn').addEventListener('click', checkTickets);
+      refreshEntrants(); // Initial load of entrants
+    });
+    
+    // Set countdown duration (for testing, 60 seconds)
+    // localStorage.clear();
+    const countdownDuration = 7 * 24 * 3600 * 1000;
+    
+    // Retrieve any existing countdown end time from localStorage
+    let countdownEnd = localStorage.getItem('countdownEnd');
+    if (!countdownEnd) {
+      countdownEnd = new Date().getTime() + countdownDuration;
+      localStorage.setItem('countdownEnd', countdownEnd);
+    } else {
+      countdownEnd = parseInt(countdownEnd, 10);
+    }
+    
     const countdownInterval = setInterval(() => {
-    const now = new Date().getTime();
-    const distance = countdownEnd - now;
-    
-    // Time calculations for days, hours, minutes and seconds
-    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-    
-    // Display the remaining time in the countdownTimer element
-    document.getElementById("countdownTimer").textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-    
-    // When the countdown finishes, update the title, clear the interval, and draw the winner
-    if (distance < 0) {
-      clearInterval(countdownInterval);
-      // Update the countdown title to display the winner label
-      document.querySelector('.countdown-title').textContent = "Winner is:";
-      document.getElementById("countdownTimer").textContent = "DRAWING WINNER...";
-      drawWinner().then(winnerInfo => {
-        document.getElementById("countdownTimer").textContent = winnerInfo;
-        document.getElementById("countdownTimer").style.fontSize = "2em";
-      });
-    }
-  }, 1000);
-    
-  // Function to draw the winner and return a string with winner details
-  async function drawWinner() {
-    try {
-      const res = await fetch('/api/draw', { method: 'POST' });
-      const data = await res.json();
-      // Construct winner details text
-      let winnerText;
-      if (data.winner) {
-        winnerText = `${data.winner}\nJackpot: ${data.jackpot} TORUS`;
-      } else {
-        winnerText = data.message || 'No winner drawn.';
+      const now = new Date().getTime();
+      const distance = countdownEnd - now;
+      
+      // Time calculations for days, hours, minutes, and seconds
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      
+      document.getElementById("countdownTimer").textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+      
+      if (distance < 0) {
+        clearInterval(countdownInterval);
+        document.querySelector('.countdown-title').textContent = "Winner is:";
+        document.getElementById("countdownTimer").textContent = "DRAWING WINNER...";
+        drawWinner().then(winnerInfo => {
+          const timerElem = document.getElementById("countdownTimer");
+          timerElem.textContent = winnerInfo;
+          timerElem.style.fontSize = "2em";
+        });
       }
-      // Optionally refresh the entrants and jackpot elsewhere on the page
-      refreshEntrants();
-      return winnerText;
-    } catch (error) {
-      console.error('Error drawing winner:', error);
-      return 'Error drawing winner.';
+    }, 1000);
+    
+    // Function to draw the winner and return a string with winner details
+    async function drawWinner() {
+      try {
+        const res = await fetch('/api/draw', { method: 'POST' });
+        const data = await res.json();
+        let winnerText;
+        if (data.winner) {
+          winnerText = `${data.winner}\nJackpot: ${data.jackpot} TORUS`;
+        } else {
+          winnerText = data.message || 'No winner drawn.';
+        }
+        refreshEntrants();
+        return winnerText;
+      } catch (error) {
+        console.error('Error drawing winner:', error);
+        return 'Error drawing winner.';
+      }
     }
-  }
     
     // Fetch and display the current entrants from the back end.
     async function refreshEntrants() {
@@ -363,11 +367,9 @@
         console.log('Data from API:', data);
         
         const jackpotElem = document.getElementById('jackpotValue');
-        console.log('jackpotElem:', jackpotElem);
         jackpotElem.textContent = data.jackpot + ' TORUS';
         
         const tableBody = document.querySelector('#entrantsTable tbody');
-        console.log('tableBody:', tableBody);
         tableBody.innerHTML = '';
         for (let address in data.entrants) {
           const row = document.createElement('tr');
@@ -379,6 +381,7 @@
         console.error('Error fetching entrants:', error);
       }
     }
+    
     // Check ticket count for a given wallet address.
     async function checkTickets() {
       const wallet = document.getElementById('walletInput').value.trim();
@@ -396,12 +399,6 @@
         resultDiv.textContent = 'Error retrieving ticket information.';
       }
     }
-    
-    // Attach event listener for checking tickets
-    document.getElementById('checkTicketsBtn').addEventListener('click', checkTickets);
-    
-    // Initial load of entrants
-    refreshEntrants();
   </script>
 </body>
 </html>

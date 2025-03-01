@@ -3,7 +3,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs'); // no longer used for logging, but can be kept for local logs if desired
 
-require('dotenv').config();
+// require('dotenv').config();
 
 const AWS = require('aws-sdk');
 // Configure AWS with your credentials and region (set via environment variables on Render)
