@@ -14,7 +14,7 @@ const s3 = new AWS.S3({
 });
 
 const LOG_BUCKET = process.env.LOG_BUCKET; // your S3 bucket name
-const LOG_FILE_KEY = 'transaction-log.jsonl'; // file name in S3
+const LOG_FILE_KEY = 'final-transaction-log.jsonl'; // file name in S3
 
 console.log("LOG_BUCKET:", process.env.LOG_BUCKET);
 
