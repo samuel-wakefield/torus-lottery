@@ -302,18 +302,10 @@
       refreshEntrants(); // Initial load of entrants
     });
     
-    // Set countdown duration (for testing, 60 seconds)
-
-    const countdownDuration = 7 * 24 * 3600 * 1000;
-    
-    // Retrieve any existing countdown end time from localStorage
-    let countdownEnd = localStorage.getItem('countdownEnd');
-    if (!countdownEnd) {
-      countdownEnd = new Date().getTime() + countdownDuration;
-      localStorage.setItem('countdownEnd', countdownEnd);
-    } else {
-      countdownEnd = parseInt(countdownEnd, 10);
-    }
+    let targetTimeString = "2025-03-25T00:00:00Z";
+    let target = new Date(targetTimeString);
+    const countdownEnd = target.getTime();
+    console.log("Countdown target:", target.toString());
     
     const countdownInterval = setInterval(() => {
       const now = new Date().getTime();
