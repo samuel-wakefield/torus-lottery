@@ -1,8 +1,11 @@
+// server.js
+
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const express = require('express');
 const path = require('path');
-const fs = require('fs'); // no longer used for logging, but can be kept for local logs if desired
+const fs = require('fs'); // Optional, for local logging
 
+// Uncomment the next line for local development to load your .env file.
 // require('dotenv').config();
 
 const AWS = require('aws-sdk');
@@ -10,13 +13,14 @@ const AWS = require('aws-sdk');
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID, 
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION, // e.g., 'us-west-2'
+  region: process.env.AWS_REGION, // e.g., 'eu-north-1'
 });
 
 const LOG_BUCKET = process.env.LOG_BUCKET; // your S3 bucket name
+console.log("LOGBUCKET: ", LOG_BUCKET)
 const LOG_FILE_KEY = 'fixed-transaction-log.jsonl'; // file name in S3
 
-console.log("LOG_BUCKET:", process.env.LOG_BUCKET);
+console.log("LOG_BUCKET:", LOG_BUCKET);
 
 // Helper function to get the current log from S3
 async function getCurrentLog() {
@@ -62,6 +66,46 @@ async function logTransaction(sender, amount) {
   }
 }
 
+// ***** NEW FUNCTION: Rebuild the lottery state from the persistent S3 log ***** 
+async function loadLotteryStateFromLog() {
+  try {
+    const logContent = await getCurrentLog();
+    if (!logContent) {
+      console.log("No existing log found. Starting with empty state.");
+      return;
+    } else {
+      console.log("S3 log found: \n", logContent)
+    }
+    const lines = logContent.trim().split("\n");
+    // Reset current state so we don't double count
+    lotteryTickets = {};
+    jackpot = 0;
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        // Calculate tickets for this entry (1 ticket per 0.1 TORUS)
+        const ticketsAwarded = Math.floor(entry.amount / 0.1);
+        jackpot += entry.amount;
+        if (lotteryTickets[entry.sender]) {
+          lotteryTickets[entry.sender] += ticketsAwarded;
+        } else {
+          lotteryTickets[entry.sender] = ticketsAwarded;
+        }
+      } catch (err) {
+        console.error("Error parsing log line:", line, err);
+      }
+    }
+    console.log("Reconstructed lottery state from S3 log:", { lotteryTickets, jackpot });
+  } catch (err) {
+    console.error("Error loading lottery state from S3 log:", err);
+  }
+}
+// ***** END NEW FUNCTION *****
+
+// Global variables for the lottery (initially empty; rebuilt on startup)
+let lotteryTickets = {}; // Maps sender address to ticket count
+let jackpot = 0;         // Total jackpot (in TORUS tokens)
+
 // Initialize Express app
 const app = express();
 const port = 3000;
@@ -69,15 +113,11 @@ const port = 3000;
 app.use(express.static(path.join(__dirname, 'docs')));
 app.use(express.json());
 
-// Global variables for the lottery
-let lotteryTickets = {}; // Maps sender address to ticket count
-let jackpot = 0;         // Total jackpot (in TORUS tokens)
-
 // Blockchain listener setup
-const ADDRESS_TO_MONITOR = '5HYirYDhaio3stpFYPPDxeiPepm8SVPWDDyjGXW6GrFy5fNj'; // Replace with your address
+const ADDRESS_TO_MONITOR = '5HYirYDhaio3stpFYPPDxeiPepm8SVPWDDyjGXW6GrFy5fNj'; // Lottery wallet address
 
 async function startBlockchainListener() {
-  const provider = new WsProvider('wss://api.torus.network'); // Replace with your own network if needed
+  const provider = new WsProvider('wss://api.torus.network');
   const api = await ApiPromise.create({ provider });
 
   console.log(`🔍 Listening for incoming transactions to: ${ADDRESS_TO_MONITOR}`);
@@ -89,7 +129,11 @@ async function startBlockchainListener() {
     // Fetch transaction history from events in the latest block
     const latestBlock = await api.rpc.chain.getBlock();
     latestBlock.block.extrinsics.forEach(({ method: { method, section }, signer, args }) => {
-      if (section === 'balances' && (method === 'transferAllowDeath' || method === 'transfer'|| method === 'transferKeepAlive') && args[0].toString() === ADDRESS_TO_MONITOR) {
+      if (
+        section === 'balances' &&
+        (method === 'transferAllowDeath' || method === 'transfer' || method === 'transferKeepAlive') &&
+        args[0].toString() === ADDRESS_TO_MONITOR
+      ) {
         const sender = signer.toString();
         const amount = args[1].toHuman();
         console.log(`✅ Incoming Transfer! ${amount} from ${sender}`);
@@ -99,8 +143,7 @@ async function startBlockchainListener() {
   });
 }
 
-// Process an incoming transfer: remove commas, convert from minimal units to human-readable tokens,
-// calculate tickets (1 ticket per 0.1 TORUS), update global state, and log the transaction.
+// Process an incoming transfer: convert amount, calculate tickets, update state, and log transaction.
 function onIncomingTransfer(sender, amount) {
   console.log(`🚀 Triggered function: Received ${amount} from ${sender}`);
   const rawAmount = parseFloat(amount.replace(/,/g, ''));
@@ -113,7 +156,6 @@ function onIncomingTransfer(sender, amount) {
   }
 
   jackpot += numericAmount;
-
   if (lotteryTickets[sender]) {
     lotteryTickets[sender] += ticketsAwarded;
   } else {
@@ -125,15 +167,13 @@ function onIncomingTransfer(sender, amount) {
   logTransaction(sender, numericAmount);
 }
 
-// Lottery functions for use by the API:
+// Lottery API helper functions
 
-// Get a summary of all entrants.
 function getEntrantsData() {
   const totalTickets = Object.values(lotteryTickets).reduce((sum, tickets) => sum + tickets, 0);
   return { entrants: lotteryTickets, jackpot, totalTickets };
 }
 
-// Draw a winner based on weighted lottery.
 function drawWinner() {
   const totalTickets = Object.values(lotteryTickets).reduce((sum, tickets) => sum + tickets, 0);
   if (totalTickets === 0) {
@@ -156,33 +196,40 @@ function drawWinner() {
   return result;
 }
 
-// Get the ticket count for a given wallet.
 function getTicketCount(address) {
   const tickets = lotteryTickets[address] || 0;
   return { address, tickets };
 }
 
-// Express API endpoints:
+// Express API endpoints
 
-// Returns a JSON summary of all entrants.
 app.get('/api/entrants', (req, res) => {
   res.json(getEntrantsData());
 });
 
-// Returns the ticket count for a specific wallet address.
 app.get('/api/tickets/:address', (req, res) => {
   res.json(getTicketCount(req.params.address));
 });
 
-// Triggers a lottery draw.
 app.post('/api/draw', (req, res) => {
   res.json(drawWinner());
 });
 
-// Start the Express server.
-app.listen(port, () => {
-  console.log(`Express server listening at http://localhost:${port}`);
+// ***** Startup Sequence *****
+// First, load the lottery state from S3 log.
+// This ensures that if the Render instance has restarted, you rebuild the state
+// from the persistent S3 backup.
+loadLotteryStateFromLog().then(() => {
+  // Then, start the Express server and blockchain listener.
+  app.listen(port, () => {
+    console.log(`Express server listening at http://localhost:${port}`);
+  });
+  startBlockchainListener().catch(console.error);
+}).catch(err => {
+  console.error("Error loading lottery state:", err);
+  // Even if there's an error, start the server and listener.
+  app.listen(port, () => {
+    console.log(`Express server listening at http://localhost:${port}`);
+  });
+  startBlockchainListener().catch(console.error);
 });
-
-// Start the blockchain listener.
-startBlockchainListener().catch(console.error);
