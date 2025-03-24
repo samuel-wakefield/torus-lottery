@@ -89,7 +89,7 @@ async function startBlockchainListener() {
     // Fetch transaction history from events in the latest block
     const latestBlock = await api.rpc.chain.getBlock();
     latestBlock.block.extrinsics.forEach(({ method: { method, section }, signer, args }) => {
-      if (section === 'balances' && method === 'transferAllowDeath' && args[0].toString() === ADDRESS_TO_MONITOR) {
+      if (section === 'balances' && (method === 'transferAllowDeath' || method === 'transfer') && args[0].toString() === ADDRESS_TO_MONITOR) {
         const sender = signer.toString();
         const amount = args[1].toHuman();
         console.log(`✅ Incoming Transfer! ${amount} from ${sender}`);
